@@ -10,12 +10,14 @@ import matplotlib.patches as patches
 if str(matplotlib.get_backend()) is not 'Agg':
     plt.switch_backend('Agg') 
 
-run = 'BCQ'
-fileLocation='/proj/vlasov/2D/'+run+'/bulk/'
-fluxLocation='/proj/vlasov/2D/'+run+'/flux/'
-outputLocation=outputdir='/homeappl/home/dubartma/appl_taito/analysator/Whistler/'+run+'/'
+run = 'BFH'
+fileLocation='/scratch/project_2000203/2D/BFH/reverted_ionosphere_field_boundary/'
+#fileLocation='/proj/vlasov/2D/'+run+'/bulk/'
+#fluxLocation='/proj/vlasov/2D/'+run+'/flux/'
+#outputLocation=outputdir='/homeappl/home/dubartma/appl_taito/analysator/Whistler/'+run+'/'
+outputLocation=outputdir='/users/dubartma/analysator/Data_Analysis/'+run+'/Fig/'
 #path_save = '/homeappl/home/dubartma/appl_taito/analysator/Whistler/ABA/Data/'
-path_save = '/homeappl/home/dubartma/appl_taito/analysator/Whistler/'+run+'/Data/'
+path_save = '/users/dubartma/analysator/Data_Analysis/'+run+'/Data/'
 
 # Frame extent for this job given as command-line arguments
 if len(sys.argv)==3: # Starting and end frames given
@@ -26,6 +28,12 @@ for j in timetot:
     # Source data file
     bulkname = "bulk."+str(j).rjust(7,'0')+".vlsv"
     print(bulkname)
+
+    #f = pt.vlsvfile.VlsvReader(fileLocation+bulkname)
+    #
+    ##read in data B
+    #B = f.read_fsgrid_variable("fg_b")[:,0,:]
+    #B_mag = numpy.linalg.norm(B,axis=2).T
 
     # CellIDs of interest
     cid1 = int(np.load(path_save+'CellID_SC.npy'))
@@ -58,8 +66,8 @@ for j in timetot:
     cax_VDF = fig.add_axes([deltaX+2*l2+eh+1.5*ecb,mv,lcb,h1-0.01])
 
 
-    # Colormap with J_diamagnetic
-    pt.plot.plot_colormap(filename=fileLocation+bulkname,var='B',
+    # Colormap with fg_b
+    pt.plot.plot_colormap(filename=fileLocation+bulkname,var='fg_b',
                           vmin=1.0e-8,vmax=3.0e-8,
                           boxre=[0.0,9.0,12.0,21.0],
                           run="BCQ",
@@ -67,6 +75,11 @@ for j in timetot:
                           scale=1.3,
                           axes=ax_col,cbaxes=cax_col,
                           outputdir=outputLocation,lin=1)
+
+    #ax_col.pcolormesh(B_mag,vmin=1.0e-8,vmax=3.0e-8,cmap='hot_desaturated')
+    #ax_col.set_xlabel('$X[R_E]$')
+    #ax_col.set_ylabel('$Z[R_E]$')
+    #ax_col.set_title('$t = '+str(j/2)+' s')    
 
     rect = patches.Rectangle((3.0,15.0),3.0,3.0,linewidth=2,edgecolor='red',facecolor='none')
     ax_col.add_patch(rect)
@@ -145,7 +158,7 @@ for j in timetot:
    #                  title='',
    #                  scale=1.15,
    #                  colormap='nipy_spectral')
-    fig.suptitle('(a) $\\Delta r = 300$ km',fontsize=15)
+    fig.suptitle('(b) $\\Delta r = 600$ km',fontsize=15)
     figname=run+"_VDFs_"+str(j).rjust(7,'0')
     extension = '.png'
     plt.savefig(outputLocation+figname+extension,dpi=800)
