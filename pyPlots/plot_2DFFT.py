@@ -8,6 +8,8 @@ import scipy
 import scipy.ndimage
 import matplotlib.colors as colors
 import imageio
+from matplotlib.ticker import (MultipleLocator, FormatStrFormatter,
+                               AutoMinorLocator)
 
 
 def get_angle(step):
@@ -213,7 +215,8 @@ def plt_2DFFT(filedir=None,
                dispersion=None,
                dr_ref=None,
                omegamax=None,
-               numproc=40):
+               numproc=40,
+               paper=None):
 
     ''' Plots a 2D FFT with dispersion curves.
 
@@ -236,7 +239,7 @@ def plt_2DFFT(filedir=None,
     :kword dispersion:  List of strings for dispersion relations (Alfven, FMW, SMW, bulkV)
     :kword omegamax:    Max frequency for plotting.
     :kword numproc:     Number of processors for parallelisation (default: 40)
-    
+    :kword paper:       'E' or 'B'. Produces 2 side by side plot of B or E in para and perp direction ready for publication.
 
 
     # Example usage:
@@ -303,7 +306,7 @@ def plt_2DFFT(filedir=None,
         ymin = f.read_parameter("zmin")
         dy   = (ymax-ymin)/ysize
     print('-----------------------------')
-    print('Run: '+run+', plane: '+plane)
+    print('Run: '+run+', plane: '+plane+', box = ['+str(boxcoords[0]/RE)+','+str(boxcoords[1]/RE)+','+str(boxcoords[2]/RE)+','+str(boxcoords[3]/RE)+'] RE, start = '+str(start)+', stop = '+str(stop))
     print('-----------------------------')
 
         # Box coordinates # m
@@ -330,6 +333,7 @@ def plt_2DFFT(filedir=None,
         return_angle = pool.map(get_angle, range(start,stop+1))
     else:
         print("Problem with angle parallelization")
+        return
 
     angle_avg = np.mean(return_angle)
     angle_std = np.std(return_angle)
@@ -345,6 +349,8 @@ def plt_2DFFT(filedir=None,
         return_fields = pool.map(get_fields, range(start,stop+1))
     else:
         print('Problem with fields parallelisation')
+        return
+
     return_fields = np.array(return_fields)
 
     B_kperp = np.zeros([return_fields.shape[0],3,return_fields.shape[2]])
@@ -400,7 +406,7 @@ def plt_2DFFT(filedir=None,
     
     # Plot fourier space
     dt       = 0.5                         # dt of simulation (sec)
-    kmin     = np.pi / dx * d_i 
+    kmin     = -np.pi / dx * d_i 
     kmax     = np.pi / dx * d_i
 
     omegamin = 0
@@ -457,595 +463,664 @@ def plt_2DFFT(filedir=None,
     print('Plotting ...')
     print('-----------------------------')
 
-    title_save = '2D_FFT'
-    # K_PARA
-        # Bx
-    plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
-    ax    = plt.subplot()
-   
-    if Bmin != None:
-       image = ax.imshow(abs(k_omega_Bx_kpara[int((k_omega_Bx_kpara.shape[0])/2):,:]),vmin=Bmin,vmax=Bmax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-    else:
-       image = ax.imshow(abs(k_omega_Bx_kpara[int((k_omega_Bx_kpara.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-
-    plt.locator_params(axis='x', nbins=10)      #Set number of ticks
-    plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
-    plt.setp(ax.get_yticklabels(),fontsize=30)
+    if paper == None:
+        title_save = '2D_FFT'
+        # K_PARA
+            # Bx
+        plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
+        ax    = plt.subplot()
+       
+        if Bmin != None:
+           image = ax.imshow(abs(k_omega_Bx_kpara[int((k_omega_Bx_kpara.shape[0])/2):,:]),vmin=Bmin,vmax=Bmax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+        else:
+           image = ax.imshow(abs(k_omega_Bx_kpara[int((k_omega_Bx_kpara.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
     
-    plt.xlim(kmin_plot, kmax_plot)
-    plt.ylim(omegamin, omegamax)
-    plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
-    plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
+        plt.locator_params(axis='x', nbins=10)      #Set number of ticks
+        plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
+        plt.setp(ax.get_yticklabels(),fontsize=30)
+        
+        plt.xlim(kmin_plot, kmax_plot)
+        plt.ylim(omegamin, omegamax)
+        plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
+        plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
+        
+        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+        
+        for i in range(0,len(dispersion)):
+            if dispersion[i] == 'Alfven':
+                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+            elif dispersion[i] == 'FMW':    
+                plt.plot(a,fmw_kpara,linewidth=3,color='red',linestyle='--',label='Fast MW')
+            elif dispersion[i] == 'SMW':    
+                plt.plot(a,smw_kpara,linewidth=3,color='red',linestyle=':',label='Slow MW')
+            elif dispersion[i] == 'bulkV':    
+                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+        
+        plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
     
-    plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+        #Colorbar
+        cb=plt.colorbar(image)
+        plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
+        
+        variable   = 'B_x'
+        cb.set_label('$'+variable+'^2 (T^2)$',fontsize=30)
+        plt.title('$'+variable+'$',fontsize='40')
+        plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'__kpara.png')
+        print('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'__kpara.png')
     
-    for i in range(0,len(dispersion)):
-        if dispersion[i] == 'Alfven':
-            plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
-        elif dispersion[i] == 'FMW':    
-            plt.plot(a,fmw_kpara,linewidth=3,color='red',linestyle='--',label='Fast MW')
-        elif dispersion[i] == 'SMW':    
-            plt.plot(a,smw_kpara,linewidth=3,color='red',linestyle=':',label='Slow MW')
-        elif dispersion[i] == 'bulkV':    
-            plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+            # By
+        plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
+        ax    = plt.subplot()
+       
+        if Bmin != None:
+            image = ax.imshow(abs(k_omega_By_kpara[int((k_omega_By_kpara.shape[0])/2):,:]),vmin=Bmin,vmax=Bmax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+        else:
+            image = ax.imshow(abs(k_omega_By_kpara[int((k_omega_By_kpara.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
     
-    plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
-
-    #Colorbar
-    cb=plt.colorbar(image)
-    plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
+        plt.locator_params(axis='x', nbins=10)      #Set number of ticks
+        plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
+        plt.setp(ax.get_yticklabels(),fontsize=30)
     
-    variable   = 'B_x'
-    cb.set_label('$'+variable+'^2 (T^2)$',fontsize=30)
-    plt.title('$'+variable+'$',fontsize='40')
-    plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'__kpara.png')
-    print('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'__kpara.png')
-
-        # By
-    plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
-    ax    = plt.subplot()
-   
-    if Bmin != None:
-        image = ax.imshow(abs(k_omega_By_kpara[int((k_omega_By_kpara.shape[0])/2):,:]),vmin=Bmin,vmax=Bmax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-    else:
-        image = ax.imshow(abs(k_omega_By_kpara[int((k_omega_By_kpara.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-
-    plt.locator_params(axis='x', nbins=10)      #Set number of ticks
-    plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
-    plt.setp(ax.get_yticklabels(),fontsize=30)
-
-    plt.xlim(kmin_plot, kmax_plot)
-    plt.ylim(omegamin, omegamax)
-    plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
-    plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
-
-    plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
-
-    for i in range(0,len(dispersion)):
-        if dispersion[i] == 'Alfven':
-            plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
-        elif dispersion[i] == 'FMW':
-            plt.plot(a,fmw_kpara,linewidth=3,color='red',linestyle='--',label='Fast MW')
-        elif dispersion[i] == 'SMW':
-            plt.plot(a,smw_kpara,linewidth=3,color='red',linestyle=':',label='Slow MW')
-        elif dispersion[i] == 'bulkV':
-            plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
-
-    plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
-
-    #Colorbar
-    cb=plt.colorbar(image)
-    plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
-
-    variable   = 'B_y'
-    cb.set_label('$'+variable+'^2 (T^2)$',fontsize=30)
-    plt.title('$'+variable+'$',fontsize='40')
-    plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kpara.png')
-    print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kpara.png')
-
-    # Bz
-    plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
-    ax    = plt.subplot()
-
-    if Bmin != None:
-        image = ax.imshow(abs(k_omega_Bz_kpara[int((k_omega_Bz_kpara.shape[0])/2):,:]),vmin=Bmin,vmax=Bmax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-    else:
-        image = ax.imshow(abs(k_omega_Bz_kpara[int((k_omega_Bz_kpara.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-
-    plt.locator_params(axis='x', nbins=10)      #Set number of ticks
-    plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
-    plt.setp(ax.get_yticklabels(),fontsize=30)
-
-    plt.xlim(kmin_plot, kmax_plot)
-    plt.ylim(omegamin, omegamax)
-    plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
-    plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
-
-    plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
-
-    for i in range(0,len(dispersion)):
-        if dispersion[i] == 'Alfven':
-            plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
-        elif dispersion[i] == 'FMW':
-            plt.plot(a,fmw_kpara,linewidth=3,color='red',linestyle='--',label='Fast MW')
-        elif dispersion[i] == 'SMW':
-            plt.plot(a,smw_kpara,linewidth=3,color='red',linestyle=':',label='Slow MW')
-        elif dispersion[i] == 'bulkV':
-            plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
-
-    plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
-
-    #Colorbar
-    cb=plt.colorbar(image)
-    plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
-
-    variable   = 'B_z'
-    cb.set_label('$'+variable+'^2 (T^2)$',fontsize=30)
-    plt.title('$'+variable+'$',fontsize='40')
-    plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kpara.png')
-    print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kpara.png')
-
-    # Ex
-    plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
-    ax    = plt.subplot()
-
-    if Emin != None:
-        image = ax.imshow(abs(k_omega_Ex_kpara[int((k_omega_Ex_kpara.shape[0])/2):,:]),vmin=Emin,vmax=Emax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-    else:
-        image = ax.imshow(abs(k_omega_Ex_kpara[int((k_omega_Ex_kpara.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-
-    plt.locator_params(axis='x', nbins=10)      #Set number of ticks
-    plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
-    plt.setp(ax.get_yticklabels(),fontsize=30)
-
-    plt.xlim(kmin_plot, kmax_plot)
-    plt.ylim(omegamin, omegamax)
-    plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
-    plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
-
-    plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
-
-    for i in range(0,len(dispersion)):
-        if dispersion[i] == 'Alfven':
-            plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
-        elif dispersion[i] == 'FMW':
-            plt.plot(a,fmw_kpara,linewidth=3,color='red',linestyle='--',label='Fast MW')
-        elif dispersion[i] == 'SMW':
-            plt.plot(a,smw_kpara,linewidth=3,color='red',linestyle=':',label='Slow MW')
-        elif dispersion[i] == 'bulkV':
-            plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
-
-    plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
-
-    #Colorbar
-    cb=plt.colorbar(image)
-    plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
-
-    variable   = 'E_x'
-    cb.set_label('$'+variable+'^2 (V/m)^2$',fontsize=30)
-    plt.title('$'+variable+'$',fontsize='40')
-    plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kpara.png')
-    print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kpara.png')
-
-    # Ey
-    plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
-    ax    = plt.subplot()
-
-    if Emin != None:
-        image = ax.imshow(abs(k_omega_Ey_kpara[int((k_omega_Ey_kpara.shape[0])/2):,:]),vmin=Emin,vmax=Emax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-    else:
-        image = ax.imshow(abs(k_omega_Ey_kpara[int((k_omega_Ey_kpara.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-
-    plt.locator_params(axis='x', nbins=10)      #Set number of ticks
-    plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
-    plt.setp(ax.get_yticklabels(),fontsize=30)
-
-    plt.xlim(kmin_plot, kmax_plot)
-    plt.ylim(omegamin, omegamax)
-    plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
-    plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
-
-    plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
-
-    for i in range(0,len(dispersion)):
-        if dispersion[i] == 'Alfven':
-            plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
-        elif dispersion[i] == 'FMW':
-            plt.plot(a,fmw_kpara,linewidth=3,color='red',linestyle='--',label='Fast MW')
-        elif dispersion[i] == 'SMW':
-            plt.plot(a,smw_kpara,linewidth=3,color='red',linestyle=':',label='Slow MW')
-        elif dispersion[i] == 'bulkV':
-            plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
-
-    plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
-
-    #Colorbar
-    cb=plt.colorbar(image)
-    plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
-
-    variable   = 'E_y'
-    cb.set_label('$'+variable+'^2 (V/m)^2$',fontsize=30)
-    plt.title('$'+variable+'$',fontsize='40')
-    plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kpara.png')
-    print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kpara.png')
-
-    # Ez
-    plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
-    ax    = plt.subplot()
-
-    if Emin != None:
-        image = ax.imshow(abs(k_omega_Ez_kpara[int((k_omega_Ez_kpara.shape[0])/2):,:]),vmin=Emin,vmax=Emax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-    else:
-        image = ax.imshow(abs(k_omega_Ez_kpara[int((k_omega_Ez_kpara.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-
-    plt.locator_params(axis='x', nbins=10)      #Set number of ticks
-    plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
-    plt.setp(ax.get_yticklabels(),fontsize=30)
-
-    plt.xlim(kmin_plot, kmax_plot)
-    plt.ylim(omegamin, omegamax)
-    plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
-    plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
-
-    plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
-
-    for i in range(0,len(dispersion)):
-        if dispersion[i] == 'Alfven':
-            plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
-        elif dispersion[i] == 'FMW':
-            plt.plot(a,fmw_kpara,linewidth=3,color='red',linestyle='--',label='Fast MW')
-        elif dispersion[i] == 'SMW':
-            plt.plot(a,smw_kpara,linewidth=3,color='red',linestyle=':',label='Slow MW')
-        elif dispersion[i] == 'bulkV':
-            plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
-
-    plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
-
-    #Colorbar
-    cb=plt.colorbar(image)
-    plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
-
-    variable   = 'E_z'
-    cb.set_label('$'+variable+'^2 (V/m)^2$',fontsize=30)
-    plt.title('$'+variable+'$',fontsize='40')
-    plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kpara.png')
-    print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kpara.png')
-
-    # n
-    plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
-    ax    = plt.subplot()
-
-    if nmin != None:
-        image = ax.imshow(abs(k_omega_n_kpara[int((k_omega_n_kpara.shape[0])/2):,:]),vmin=nmin,vmax=nmax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-    else:
-        image = ax.imshow(abs(k_omega_n_kpara[int((k_omega_n_kpara.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-
-    plt.locator_params(axis='x', nbins=10)      #Set number of ticks
-    plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
-    plt.setp(ax.get_yticklabels(),fontsize=30)
-
-    plt.xlim(kmin_plot, kmax_plot)
-    plt.ylim(omegamin, omegamax)
-    plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
-    plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
-
-    plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
-
-    for i in range(0,len(dispersion)):
-        if dispersion[i] == 'Alfven':
-            plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
-        elif dispersion[i] == 'FMW':
-            plt.plot(a,fmw_kpara,linewidth=3,color='red',linestyle='--',label='Fast MW')
-        elif dispersion[i] == 'SMW':
-            plt.plot(a,smw_kpara,linewidth=3,color='red',linestyle=':',label='Slow MW')
-        elif dispersion[i] == 'bulkV':
-            plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
-
-    plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
-
-    #Colorbar
-    cb=plt.colorbar(image)
-    plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
-
-    variable   = 'n'
-    cb.set_label('$'+variable+'^2 (m^{-6})$',fontsize=30)
-    plt.title('$'+variable+'$',fontsize='40')
-    plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kpara.png')
-    print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kpara.png')
-
-# ----------------------------------------------------------------------------------------------------------------------------------------
-
-    # K_PERP
-        # Bx
-    plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
-    ax    = plt.subplot()
-   
-    if Bmin != None:
-       image = ax.imshow(abs(k_omega_Bx_kperp[int((k_omega_Bx_kperp.shape[0])/2):,:]),vmin=Bmin,vmax=Bmax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-    else:
-       image = ax.imshow(abs(k_omega_Bx_kperp[int((k_omega_Bx_kperp.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-
-    plt.locator_params(axis='x', nbins=10)      #Set number of ticks
-    plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
-    plt.setp(ax.get_yticklabels(),fontsize=30)
+        plt.xlim(kmin_plot, kmax_plot)
+        plt.ylim(omegamin, omegamax)
+        plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
+        plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
     
-    plt.xlim(kmin_plot, kmax_plot)
-    plt.ylim(omegamin, omegamax)
-    plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
-    plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
+        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
     
-    plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+        for i in range(0,len(dispersion)):
+            if dispersion[i] == 'Alfven':
+                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+            elif dispersion[i] == 'FMW':
+                plt.plot(a,fmw_kpara,linewidth=3,color='red',linestyle='--',label='Fast MW')
+            elif dispersion[i] == 'SMW':
+                plt.plot(a,smw_kpara,linewidth=3,color='red',linestyle=':',label='Slow MW')
+            elif dispersion[i] == 'bulkV':
+                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
     
-    for i in range(0,len(dispersion)):
-        if dispersion[i] == 'Alfven':
-            plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
-        elif dispersion[i] == 'FMW':    
-            plt.plot(a,fmw_kperp,linewidth=3,color='red',linestyle='--',label='Fast MW')
-        elif dispersion[i] == 'SMW':    
-            plt.plot(a,smw_kperp,linewidth=3,color='red',linestyle=':',label='Slow MW')
-        elif dispersion[i] == 'bulkV':    
-            plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+        plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
     
-    plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
-
-    #Colorbar
-    cb=plt.colorbar(image)
-    plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
+        #Colorbar
+        cb=plt.colorbar(image)
+        plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
     
-    variable   = 'B_x'
-    cb.set_label('$'+variable+'^2 (T^2)$',fontsize=30)
-    plt.title('$'+variable+'$',fontsize='40')
-    plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
-    print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
+        variable   = 'B_y'
+        cb.set_label('$'+variable+'^2 (T^2)$',fontsize=30)
+        plt.title('$'+variable+'$',fontsize='40')
+        plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kpara.png')
+        print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kpara.png')
+    
+        # Bz
+        plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
+        ax    = plt.subplot()
+    
+        if Bmin != None:
+            image = ax.imshow(abs(k_omega_Bz_kpara[int((k_omega_Bz_kpara.shape[0])/2):,:]),vmin=Bmin,vmax=Bmax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+        else:
+            image = ax.imshow(abs(k_omega_Bz_kpara[int((k_omega_Bz_kpara.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+    
+        plt.locator_params(axis='x', nbins=10)      #Set number of ticks
+        plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
+        plt.setp(ax.get_yticklabels(),fontsize=30)
+    
+        plt.xlim(kmin_plot, kmax_plot)
+        plt.ylim(omegamin, omegamax)
+        plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
+        plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
+    
+        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+    
+        for i in range(0,len(dispersion)):
+            if dispersion[i] == 'Alfven':
+                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+            elif dispersion[i] == 'FMW':
+                plt.plot(a,fmw_kpara,linewidth=3,color='red',linestyle='--',label='Fast MW')
+            elif dispersion[i] == 'SMW':
+                plt.plot(a,smw_kpara,linewidth=3,color='red',linestyle=':',label='Slow MW')
+            elif dispersion[i] == 'bulkV':
+                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+    
+        plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
+    
+        #Colorbar
+        cb=plt.colorbar(image)
+        plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
+    
+        variable   = 'B_z'
+        cb.set_label('$'+variable+'^2 (T^2)$',fontsize=30)
+        plt.title('$'+variable+'$',fontsize='40')
+        plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kpara.png')
+        print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kpara.png')
+    
+        # Ex
+        plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
+        ax    = plt.subplot()
+    
+        if Emin != None:
+            image = ax.imshow(abs(k_omega_Ex_kpara[int((k_omega_Ex_kpara.shape[0])/2):,:]),vmin=Emin,vmax=Emax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+        else:
+            image = ax.imshow(abs(k_omega_Ex_kpara[int((k_omega_Ex_kpara.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+    
+        plt.locator_params(axis='x', nbins=10)      #Set number of ticks
+        plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
+        plt.setp(ax.get_yticklabels(),fontsize=30)
+    
+        plt.xlim(kmin_plot, kmax_plot)
+        plt.ylim(omegamin, omegamax)
+        plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
+        plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
+    
+        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+    
+        for i in range(0,len(dispersion)):
+            if dispersion[i] == 'Alfven':
+                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+            elif dispersion[i] == 'FMW':
+                plt.plot(a,fmw_kpara,linewidth=3,color='red',linestyle='--',label='Fast MW')
+            elif dispersion[i] == 'SMW':
+                plt.plot(a,smw_kpara,linewidth=3,color='red',linestyle=':',label='Slow MW')
+            elif dispersion[i] == 'bulkV':
+                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+    
+        plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
+    
+        #Colorbar
+        cb=plt.colorbar(image)
+        plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
+    
+        variable   = 'E_x'
+        cb.set_label('$'+variable+'^2 (V/m)^2$',fontsize=30)
+        plt.title('$'+variable+'$',fontsize='40')
+        plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kpara.png')
+        print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kpara.png')
+    
+        # Ey
+        plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
+        ax    = plt.subplot()
+    
+        if Emin != None:
+            image = ax.imshow(abs(k_omega_Ey_kpara[int((k_omega_Ey_kpara.shape[0])/2):,:]),vmin=Emin,vmax=Emax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+        else:
+            image = ax.imshow(abs(k_omega_Ey_kpara[int((k_omega_Ey_kpara.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+    
+        plt.locator_params(axis='x', nbins=10)      #Set number of ticks
+        plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
+        plt.setp(ax.get_yticklabels(),fontsize=30)
+    
+        plt.xlim(kmin_plot, kmax_plot)
+        plt.ylim(omegamin, omegamax)
+        plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
+        plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
+    
+        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+    
+        for i in range(0,len(dispersion)):
+            if dispersion[i] == 'Alfven':
+                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+            elif dispersion[i] == 'FMW':
+                plt.plot(a,fmw_kpara,linewidth=3,color='red',linestyle='--',label='Fast MW')
+            elif dispersion[i] == 'SMW':
+                plt.plot(a,smw_kpara,linewidth=3,color='red',linestyle=':',label='Slow MW')
+            elif dispersion[i] == 'bulkV':
+                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+    
+        plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
+    
+        #Colorbar
+        cb=plt.colorbar(image)
+        plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
+    
+        variable   = 'E_y'
+        cb.set_label('$'+variable+'^2 (V/m)^2$',fontsize=30)
+        plt.title('$'+variable+'$',fontsize='40')
+        plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kpara.png')
+        print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kpara.png')
+    
+        # Ez
+        plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
+        ax    = plt.subplot()
+    
+        if Emin != None:
+            image = ax.imshow(abs(k_omega_Ez_kpara[int((k_omega_Ez_kpara.shape[0])/2):,:]),vmin=Emin,vmax=Emax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+        else:
+            image = ax.imshow(abs(k_omega_Ez_kpara[int((k_omega_Ez_kpara.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+    
+        plt.locator_params(axis='x', nbins=10)      #Set number of ticks
+        plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
+        plt.setp(ax.get_yticklabels(),fontsize=30)
+    
+        plt.xlim(kmin_plot, kmax_plot)
+        plt.ylim(omegamin, omegamax)
+        plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
+        plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
+    
+        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+    
+        for i in range(0,len(dispersion)):
+            if dispersion[i] == 'Alfven':
+                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+            elif dispersion[i] == 'FMW':
+                plt.plot(a,fmw_kpara,linewidth=3,color='red',linestyle='--',label='Fast MW')
+            elif dispersion[i] == 'SMW':
+                plt.plot(a,smw_kpara,linewidth=3,color='red',linestyle=':',label='Slow MW')
+            elif dispersion[i] == 'bulkV':
+                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+    
+        plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
+    
+        #Colorbar
+        cb=plt.colorbar(image)
+        plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
+    
+        variable   = 'E_z'
+        cb.set_label('$'+variable+'^2 (V/m)^2$',fontsize=30)
+        plt.title('$'+variable+'$',fontsize='40')
+        plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kpara.png')
+        print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kpara.png')
+    
+        # n
+        plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
+        ax    = plt.subplot()
+    
+        if nmin != None:
+            image = ax.imshow(abs(k_omega_n_kpara[int((k_omega_n_kpara.shape[0])/2):,:]),vmin=nmin,vmax=nmax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+        else:
+            image = ax.imshow(abs(k_omega_n_kpara[int((k_omega_n_kpara.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+    
+        plt.locator_params(axis='x', nbins=10)      #Set number of ticks
+        plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
+        plt.setp(ax.get_yticklabels(),fontsize=30)
+    
+        plt.xlim(kmin_plot, kmax_plot)
+        plt.ylim(omegamin, omegamax)
+        plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
+        plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
+    
+        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+    
+        for i in range(0,len(dispersion)):
+            if dispersion[i] == 'Alfven':
+                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+            elif dispersion[i] == 'FMW':
+                plt.plot(a,fmw_kpara,linewidth=3,color='red',linestyle='--',label='Fast MW')
+            elif dispersion[i] == 'SMW':
+                plt.plot(a,smw_kpara,linewidth=3,color='red',linestyle=':',label='Slow MW')
+            elif dispersion[i] == 'bulkV':
+                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+    
+        plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
+    
+        #Colorbar
+        cb=plt.colorbar(image)
+        plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
+    
+        variable   = 'n'
+        cb.set_label('$'+variable+'^2 (m^{-6})$',fontsize=30)
+        plt.title('$'+variable+'$',fontsize='40')
+        plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kpara.png')
+        print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kpara.png')
+    
+    # ----------------------------------------------------------------------------------------------------------------------------------------
+    
+        # K_PERP
+            # Bx
+        plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
+        ax    = plt.subplot()
+       
+        if Bmin != None:
+           image = ax.imshow(abs(k_omega_Bx_kperp[int((k_omega_Bx_kperp.shape[0])/2):,:]),vmin=Bmin,vmax=Bmax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+        else:
+           image = ax.imshow(abs(k_omega_Bx_kperp[int((k_omega_Bx_kperp.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+    
+        plt.locator_params(axis='x', nbins=10)      #Set number of ticks
+        plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
+        plt.setp(ax.get_yticklabels(),fontsize=30)
+        
+        plt.xlim(kmin_plot, kmax_plot)
+        plt.ylim(omegamin, omegamax)
+        plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
+        plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
+        
+        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+        
+        for i in range(0,len(dispersion)):
+            if dispersion[i] == 'Alfven':
+                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+            elif dispersion[i] == 'FMW':    
+                plt.plot(a,fmw_kperp,linewidth=3,color='red',linestyle='--',label='Fast MW')
+            elif dispersion[i] == 'SMW':    
+                plt.plot(a,smw_kperp,linewidth=3,color='red',linestyle=':',label='Slow MW')
+            elif dispersion[i] == 'bulkV':    
+                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+        
+        plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
+    
+        #Colorbar
+        cb=plt.colorbar(image)
+        plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
+        
+        variable   = 'B_x'
+        cb.set_label('$'+variable+'^2 (T^2)$',fontsize=30)
+        plt.title('$'+variable+'$',fontsize='40')
+        plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
+        print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
+    
+            # By
+        plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
+        ax    = plt.subplot()
+       
+        if Bmin != None:
+            image = ax.imshow(abs(k_omega_By_kperp[int((k_omega_By_kperp.shape[0])/2):,:]),vmin=Bmin,vmax=Bmax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+        else:
+            image = ax.imshow(abs(k_omega_By_kperp[int((k_omega_By_kperp.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+    
+        plt.locator_params(axis='x', nbins=10)      #Set number of ticks
+        plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
+        plt.setp(ax.get_yticklabels(),fontsize=30)
+    
+        plt.xlim(kmin_plot, kmax_plot)
+        plt.ylim(omegamin, omegamax)
+        plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
+        plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
+    
+        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+    
+        for i in range(0,len(dispersion)):
+            if dispersion[i] == 'Alfven':
+                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+            elif dispersion[i] == 'FMW':
+                plt.plot(a,fmw_kperp,linewidth=3,color='red',linestyle='--',label='Fast MW')
+            elif dispersion[i] == 'SMW':
+                plt.plot(a,smw_kperp,linewidth=3,color='red',linestyle=':',label='Slow MW')
+            elif dispersion[i] == 'bulkV':
+                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+    
+        plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
+    
+        #Colorbar
+        cb=plt.colorbar(image)
+        plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
+    
+        variable   = 'B_y'
+        cb.set_label('$'+variable+'^2 (T^2)$',fontsize=30)
+        plt.title('$'+variable+'$',fontsize='40')
+        plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
+        print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
+    
+        # Bz
+        plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
+        ax    = plt.subplot()
+    
+        if Bmin != None:
+            image = ax.imshow(abs(k_omega_Bz_kperp[int((k_omega_Bz_kperp.shape[0])/2):,:]),vmin=Bmin,vmax=Bmax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+        else:
+            image = ax.imshow(abs(k_omega_Bz_kperp[int((k_omega_Bz_kperp.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+    
+        plt.locator_params(axis='x', nbins=10)      #Set number of ticks
+        plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
+        plt.setp(ax.get_yticklabels(),fontsize=30)
+    
+        plt.xlim(kmin_plot, kmax_plot)
+        plt.ylim(omegamin, omegamax)
+        plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
+        plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
+    
+        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+    
+        for i in range(0,len(dispersion)):
+            if dispersion[i] == 'Alfven':
+                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+            elif dispersion[i] == 'FMW':
+                plt.plot(a,fmw_kperp,linewidth=3,color='red',linestyle='--',label='Fast MW')
+            elif dispersion[i] == 'SMW':
+                plt.plot(a,smw_kperp,linewidth=3,color='red',linestyle=':',label='Slow MW')
+            elif dispersion[i] == 'bulkV':
+                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+    
+        plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
+    
+        #Colorbar
+        cb=plt.colorbar(image)
+        plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
+    
+        variable   = 'B_z'
+        cb.set_label('$'+variable+'^2 (T^2)$',fontsize=30)
+        plt.title('$'+variable+'$',fontsize='40')
+        plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
+        print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
+    
+        # Ex
+        plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
+        ax    = plt.subplot()
+    
+        if Emin != None:
+            image = ax.imshow(abs(k_omega_Ex_kperp[int((k_omega_Ex_kperp.shape[0])/2):,:]),vmin=Emin,vmax=Emax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+        else:
+            image = ax.imshow(abs(k_omega_Ex_kperp[int((k_omega_Ex_kperp.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+    
+        plt.locator_params(axis='x', nbins=10)      #Set number of ticks
+        plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
+        plt.setp(ax.get_yticklabels(),fontsize=30)
+    
+        plt.xlim(kmin_plot, kmax_plot)
+        plt.ylim(omegamin, omegamax)
+        plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
+        plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
+    
+        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+    
+        for i in range(0,len(dispersion)):
+            if dispersion[i] == 'Alfven':
+                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+            elif dispersion[i] == 'FMW':
+                plt.plot(a,fmw_kperp,linewidth=3,color='red',linestyle='--',label='Fast MW')
+            elif dispersion[i] == 'SMW':
+                plt.plot(a,smw_kperp,linewidth=3,color='red',linestyle=':',label='Slow MW')
+            elif dispersion[i] == 'bulkV':
+                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+    
+        plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
+    
+        #Colorbar
+        cb=plt.colorbar(image)
+        plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
+    
+        variable   = 'E_x'
+        cb.set_label('$'+variable+'^2 (V/m)^2$',fontsize=30)
+        plt.title('$'+variable+'$',fontsize='40')
+        plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
+        print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
+    
+        # Ey
+        plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
+        ax    = plt.subplot()
+    
+        if Emin != None:
+            image = ax.imshow(abs(k_omega_Ey_kperp[int((k_omega_Ey_kperp.shape[0])/2):,:]),vmin=Emin,vmax=Emax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+        else:
+            image = ax.imshow(abs(k_omega_Ey_kperp[int((k_omega_Ey_kperp.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+    
+        plt.locator_params(axis='x', nbins=10)      #Set number of ticks
+        plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
+        plt.setp(ax.get_yticklabels(),fontsize=30)
+    
+        plt.xlim(kmin_plot, kmax_plot)
+        plt.ylim(omegamin, omegamax)
+        plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
+        plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
+    
+        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+    
+        for i in range(0,len(dispersion)):
+            if dispersion[i] == 'Alfven':
+                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+            elif dispersion[i] == 'FMW':
+                plt.plot(a,fmw_kperp,linewidth=3,color='red',linestyle='--',label='Fast MW')
+            elif dispersion[i] == 'SMW':
+                plt.plot(a,smw_kperp,linewidth=3,color='red',linestyle=':',label='Slow MW')
+            elif dispersion[i] == 'bulkV':
+                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+    
+        plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
+    
+        #Colorbar
+        cb=plt.colorbar(image)
+        plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
+    
+        variable   = 'E_y'
+        cb.set_label('$'+variable+'^2 (V/m)^2$',fontsize=30)
+        plt.title('$'+variable+'$',fontsize='40')
+        plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
+        print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
+    
+        # Ez
+        plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
+        ax    = plt.subplot()
+    
+        if Emin != None:
+            image = ax.imshow(abs(k_omega_Ez_kperp[int((k_omega_Ez_kperp.shape[0])/2):,:]),vmin=Emin,vmax=Emax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+        else:
+            image = ax.imshow(abs(k_omega_Ez_kperp[int((k_omega_Ez_kperp.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+    
+        plt.locator_params(axis='x', nbins=10)      #Set number of ticks
+        plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
+        plt.setp(ax.get_yticklabels(),fontsize=30)
+    
+        plt.xlim(kmin_plot, kmax_plot)
+        plt.ylim(omegamin, omegamax)
+        plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
+        plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
+    
+        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+    
+        for i in range(0,len(dispersion)):
+            if dispersion[i] == 'Alfven':
+                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+            elif dispersion[i] == 'FMW':
+                plt.plot(a,fmw_kperp,linewidth=3,color='red',linestyle='--',label='Fast MW')
+            elif dispersion[i] == 'SMW':
+                plt.plot(a,smw_kperp,linewidth=3,color='red',linestyle=':',label='Slow MW')
+            elif dispersion[i] == 'bulkV':
+                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+    
+        plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
+    
+        #Colorbar
+        cb=plt.colorbar(image)
+        plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
+    
+        variable   = 'E_z'
+        cb.set_label('$'+variable+'^2 (V/m)^2$',fontsize=30)
+        plt.title('$'+variable+'$',fontsize='40')
+        plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
+        print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
+    
+        # n
+        plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
+        ax    = plt.subplot()
+    
+        if nmin != None:
+            image = ax.imshow(abs(k_omega_n_kperp[int((k_omega_n_kperp.shape[0])/2):,:]),vmin=nmin,vmax=nmax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+        else:
+            image = ax.imshow(abs(k_omega_n_kperp[int((k_omega_n_kperp.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+    
+        plt.locator_params(axis='x', nbins=10)      #Set number of ticks
+        plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
+        plt.setp(ax.get_yticklabels(),fontsize=30)
+    
+        plt.xlim(kmin_plot, kmax_plot)
+        plt.ylim(omegamin, omegamax)
+        plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
+        plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
+    
+        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+    
+        for i in range(0,len(dispersion)):
+            if dispersion[i] == 'Alfven':
+                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+            elif dispersion[i] == 'FMW':
+                plt.plot(a,fmw_kperp,linewidth=3,color='red',linestyle='--',label='Fast MW')
+            elif dispersion[i] == 'SMW':
+                plt.plot(a,smw_kperp,linewidth=3,color='red',linestyle=':',label='Slow MW')
+            elif dispersion[i] == 'bulkV':
+                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+    
+        plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
+    
+        #Colorbar
+        cb=plt.colorbar(image)
+        plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
+    
+        variable   = 'n'
+        cb.set_label('$'+variable+'^2 (m^{-6})$',fontsize=30)
+        plt.title('$'+variable+'$',fontsize='40')
+        plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
+        print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
 
-        # By
-    plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
-    ax    = plt.subplot()
-   
-    if Bmin != None:
-        image = ax.imshow(abs(k_omega_By_kperp[int((k_omega_By_kperp.shape[0])/2):,:]),vmin=Bmin,vmax=Bmax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
+    elif paper == 'E':
+        fig, (ax_para, ax_perp) = plt.subplots(1,2,sharey=True)
+        labelsize = 11
+        fontsize  = 15
+        
+        cmap = 'jet'
+        #K_PARA
+        image = ax_para.imshow(abs(k_omega_Ey_kpara[int((k_omega_Ey_kpara.shape[0])/2):,:]),vmin=Emin,vmax=Emax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto', cmap = plt.get_cmap(cmap))
+        
+        ax_para.locator_params(axis='x', nbins=5)      #Set number of ticks
+        ax_para.tick_params(axis='both',labelsize=labelsize)   #Set fontsize of tick labels
+        ax_para.xaxis.set_major_locator(MultipleLocator(0.5))
+        
+        ax_para.set_xlim(kmin_plot, kmax_plot)
+        ax_para.set_ylim(omegamin, omegamax)
+        ax_para.set_xlabel("$k_\\parallel * d_i$",fontsize=fontsize)
+        ax_para.set_ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize=fontsize)
+        
+        ax_para.plot(a, cfl, linewidth=2, color='black',label='CFL condition')
+        ax_para.plot(a,awaves_para,linewidth=2,color='blue',label='Alfven Waves')
+        ax_para.plot(a,fmw_kpara,linewidth=2,color='red',linestyle='--',label='Fast MW')
+        ax_para.plot(a,smw_kpara,linewidth=2,color='red',linestyle=':',label='Slow MW')
+        ax_para.plot(a,bv_para,linewidth=2,color='black',linestyle='--',label='V')
+        
+        ax_para.text(kmax_plot - 0.3,2.7,'(c)',fontsize=12)
+        
+        ax_para.legend(bbox_to_anchor = [-0.03, 1.04, 2.105, 0.05], loc='upper right',ncol=5, mode='expand', fontsize=8.5)
+        
+        #K_PERP
+        image = ax_perp.imshow(abs(k_omega_Ey_kperp[int((k_omega_Ey_kperp.shape[0])/2):,:]),vmin=Emin,vmax=Emax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto',cmap = plt.get_cmap(cmap))
+        
+        ax_perp.locator_params(axis='x', nbins=5) #Set number of ticks
+        ax_perp.tick_params(axis='x',labelsize=labelsize) #Set fontsize of tick labels
+        ax_perp.xaxis.set_major_locator(MultipleLocator(0.5))
+        
+        ax_perp.set_xlim(kmin_plot, kmax_plot)
+        ax_perp.set_ylim(omegamin, omegamax)
+        ax_perp.set_xlabel("$k_\\bot * d_i$",fontsize=fontsize-1)
+        
+        ax_perp.plot(a, cfl, linewidth=2, color='black',label='CFL condition')
+        ax_perp.plot(a,awaves_perp,linewidth=2,color='blue',label='Alfven Speed')
+        ax_perp.plot(a,fmw_kperp,linewidth=2,color='red',linestyle='--',label='Fast MW')
+        ax_perp.plot(a,smw_kperp,linewidth=2,color='red',linestyle=':',label='Slow MW')
+        ax_perp.plot(a,bv_perp,linewidth=2,color='black',linestyle='--',label='V')
+        
+        ax_perp.text(kmax_plot - 0.3,2.7,'(d)',fontsize=12)
+        
+        fig.suptitle('$\\Delta r = '+str(int(dx/1000))+'$ km',fontsize=16)
+        
+        #plt.tight_layout(rect=[-0.01, 0.0, 1, 0.92])
+        fig.subplots_adjust(wspace=0.05)
+
+        #Colorbar
+        fig.subplots_adjust(right=0.85)
+        cbar_ax = fig.add_axes([0.855, 0.11, 0.03, 0.77])
+        fig.colorbar(image, cax=cbar_ax)
+        cbar_ax.set_ylabel('$E_y^2 (V/m)^2$',fontsize=fontsize-2)
+        
+        
+        title = 'FFT_'+run
+        #plt.savefig(path_fig+title+'.eps',dpi=400)
+        plt.savefig(outputdir+title+'.pdf',dpi=400)
+        print(outputdir+title+'.pdf')
+
     else:
-        image = ax.imshow(abs(k_omega_By_kperp[int((k_omega_By_kperp.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-
-    plt.locator_params(axis='x', nbins=10)      #Set number of ticks
-    plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
-    plt.setp(ax.get_yticklabels(),fontsize=30)
-
-    plt.xlim(kmin_plot, kmax_plot)
-    plt.ylim(omegamin, omegamax)
-    plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
-    plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
-
-    plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
-
-    for i in range(0,len(dispersion)):
-        if dispersion[i] == 'Alfven':
-            plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
-        elif dispersion[i] == 'FMW':
-            plt.plot(a,fmw_kperp,linewidth=3,color='red',linestyle='--',label='Fast MW')
-        elif dispersion[i] == 'SMW':
-            plt.plot(a,smw_kperp,linewidth=3,color='red',linestyle=':',label='Slow MW')
-        elif dispersion[i] == 'bulkV':
-            plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
-
-    plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
-
-    #Colorbar
-    cb=plt.colorbar(image)
-    plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
-
-    variable   = 'B_y'
-    cb.set_label('$'+variable+'^2 (T^2)$',fontsize=30)
-    plt.title('$'+variable+'$',fontsize='40')
-    plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
-    print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
-
-    # Bz
-    plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
-    ax    = plt.subplot()
-
-    if Bmin != None:
-        image = ax.imshow(abs(k_omega_Bz_kperp[int((k_omega_Bz_kperp.shape[0])/2):,:]),vmin=Bmin,vmax=Bmax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-    else:
-        image = ax.imshow(abs(k_omega_Bz_kperp[int((k_omega_Bz_kperp.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-
-    plt.locator_params(axis='x', nbins=10)      #Set number of ticks
-    plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
-    plt.setp(ax.get_yticklabels(),fontsize=30)
-
-    plt.xlim(kmin_plot, kmax_plot)
-    plt.ylim(omegamin, omegamax)
-    plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
-    plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
-
-    plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
-
-    for i in range(0,len(dispersion)):
-        if dispersion[i] == 'Alfven':
-            plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
-        elif dispersion[i] == 'FMW':
-            plt.plot(a,fmw_kperp,linewidth=3,color='red',linestyle='--',label='Fast MW')
-        elif dispersion[i] == 'SMW':
-            plt.plot(a,smw_kperp,linewidth=3,color='red',linestyle=':',label='Slow MW')
-        elif dispersion[i] == 'bulkV':
-            plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
-
-    plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
-
-    #Colorbar
-    cb=plt.colorbar(image)
-    plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
-
-    variable   = 'B_z'
-    cb.set_label('$'+variable+'^2 (T^2)$',fontsize=30)
-    plt.title('$'+variable+'$',fontsize='40')
-    plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
-    print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
-
-    # Ex
-    plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
-    ax    = plt.subplot()
-
-    if Emin != None:
-        image = ax.imshow(abs(k_omega_Ex_kperp[int((k_omega_Ex_kperp.shape[0])/2):,:]),vmin=Emin,vmax=Emax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-    else:
-        image = ax.imshow(abs(k_omega_Ex_kperp[int((k_omega_Ex_kperp.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-
-    plt.locator_params(axis='x', nbins=10)      #Set number of ticks
-    plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
-    plt.setp(ax.get_yticklabels(),fontsize=30)
-
-    plt.xlim(kmin_plot, kmax_plot)
-    plt.ylim(omegamin, omegamax)
-    plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
-    plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
-
-    plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
-
-    for i in range(0,len(dispersion)):
-        if dispersion[i] == 'Alfven':
-            plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
-        elif dispersion[i] == 'FMW':
-            plt.plot(a,fmw_kperp,linewidth=3,color='red',linestyle='--',label='Fast MW')
-        elif dispersion[i] == 'SMW':
-            plt.plot(a,smw_kperp,linewidth=3,color='red',linestyle=':',label='Slow MW')
-        elif dispersion[i] == 'bulkV':
-            plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
-
-    plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
-
-    #Colorbar
-    cb=plt.colorbar(image)
-    plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
-
-    variable   = 'E_x'
-    cb.set_label('$'+variable+'^2 (V/m)^2$',fontsize=30)
-    plt.title('$'+variable+'$',fontsize='40')
-    plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
-    print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
-
-    # Ey
-    plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
-    ax    = plt.subplot()
-
-    if Emin != None:
-        image = ax.imshow(abs(k_omega_Ey_kperp[int((k_omega_Ey_kperp.shape[0])/2):,:]),vmin=Emin,vmax=Emax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-    else:
-        image = ax.imshow(abs(k_omega_Ey_kperp[int((k_omega_Ey_kperp.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-
-    plt.locator_params(axis='x', nbins=10)      #Set number of ticks
-    plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
-    plt.setp(ax.get_yticklabels(),fontsize=30)
-
-    plt.xlim(kmin_plot, kmax_plot)
-    plt.ylim(omegamin, omegamax)
-    plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
-    plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
-
-    plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
-
-    for i in range(0,len(dispersion)):
-        if dispersion[i] == 'Alfven':
-            plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
-        elif dispersion[i] == 'FMW':
-            plt.plot(a,fmw_kperp,linewidth=3,color='red',linestyle='--',label='Fast MW')
-        elif dispersion[i] == 'SMW':
-            plt.plot(a,smw_kperp,linewidth=3,color='red',linestyle=':',label='Slow MW')
-        elif dispersion[i] == 'bulkV':
-            plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
-
-    plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
-
-    #Colorbar
-    cb=plt.colorbar(image)
-    plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
-
-    variable   = 'E_y'
-    cb.set_label('$'+variable+'^2 (V/m)^2$',fontsize=30)
-    plt.title('$'+variable+'$',fontsize='40')
-    plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
-    print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
-
-    # Ez
-    plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
-    ax    = plt.subplot()
-
-    if Emin != None:
-        image = ax.imshow(abs(k_omega_Ez_kperp[int((k_omega_Ez_kperp.shape[0])/2):,:]),vmin=Emin,vmax=Emax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-    else:
-        image = ax.imshow(abs(k_omega_Ez_kperp[int((k_omega_Ez_kperp.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-
-    plt.locator_params(axis='x', nbins=10)      #Set number of ticks
-    plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
-    plt.setp(ax.get_yticklabels(),fontsize=30)
-
-    plt.xlim(kmin_plot, kmax_plot)
-    plt.ylim(omegamin, omegamax)
-    plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
-    plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
-
-    plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
-
-    for i in range(0,len(dispersion)):
-        if dispersion[i] == 'Alfven':
-            plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
-        elif dispersion[i] == 'FMW':
-            plt.plot(a,fmw_kperp,linewidth=3,color='red',linestyle='--',label='Fast MW')
-        elif dispersion[i] == 'SMW':
-            plt.plot(a,smw_kperp,linewidth=3,color='red',linestyle=':',label='Slow MW')
-        elif dispersion[i] == 'bulkV':
-            plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
-
-    plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
-
-    #Colorbar
-    cb=plt.colorbar(image)
-    plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
-
-    variable   = 'E_z'
-    cb.set_label('$'+variable+'^2 (V/m)^2$',fontsize=30)
-    plt.title('$'+variable+'$',fontsize='40')
-    plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
-    print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
-
-    # n
-    plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
-    ax    = plt.subplot()
-
-    if nmin != None:
-        image = ax.imshow(abs(k_omega_n_kperp[int((k_omega_n_kperp.shape[0])/2):,:]),vmin=nmin,vmax=nmax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-    else:
-        image = ax.imshow(abs(k_omega_n_kperp[int((k_omega_n_kperp.shape[0])/2):,:]), norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto')
-
-    plt.locator_params(axis='x', nbins=10)      #Set number of ticks
-    plt.setp(ax.get_xticklabels(),fontsize=30) #Set fontsize of tick labels
-    plt.setp(ax.get_yticklabels(),fontsize=30)
-
-    plt.xlim(kmin_plot, kmax_plot)
-    plt.ylim(omegamin, omegamax)
-    plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
-    plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
-
-    plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
-
-    for i in range(0,len(dispersion)):
-        if dispersion[i] == 'Alfven':
-            plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
-        elif dispersion[i] == 'FMW':
-            plt.plot(a,fmw_kperp,linewidth=3,color='red',linestyle='--',label='Fast MW')
-        elif dispersion[i] == 'SMW':
-            plt.plot(a,smw_kperp,linewidth=3,color='red',linestyle=':',label='Slow MW')
-        elif dispersion[i] == 'bulkV':
-            plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
-
-    plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
-
-    #Colorbar
-    cb=plt.colorbar(image)
-    plt.setp(plt.getp(cb.ax.axes, 'yticklabels'),fontsize=30) #Set fontisze of colorbar ticks
-
-    variable   = 'n'
-    cb.set_label('$'+variable+'^2 (m^{-6})$',fontsize=30)
-    plt.title('$'+variable+'$',fontsize='40')
-    plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
-    print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
+        print('ERROR: kword paper specified with no valid argument')
+        return
