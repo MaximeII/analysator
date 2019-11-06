@@ -505,7 +505,7 @@ def plt_2DFFT(filedir=None,
         variable   = 'B_x'
         cb.set_label('$'+variable+'^2 (T^2)$',fontsize=30)
         plt.title('$'+variable+'$',fontsize='40')
-        plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'__kpara.png')
+        plt.savefig(outputdir+run+'_'+variable+'_'+title_save+'_kpara.png')
         print('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'__kpara.png')
     
             # By
