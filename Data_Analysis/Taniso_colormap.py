@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import sys
 from matplotlib import rcParams
 
-outputLocation=outputdir='/homeappl/home/dubartma/appl_taito/analysator/Whistler/'
+outputLocation=outputdir='/users/dubartma/analysator/Data_Analysis/Fig/'
 hspace = 0.02
 scale  = 1.4
 
@@ -20,7 +20,7 @@ for j in timetot:
     fig = plt.figure(figsize = (10.,5.))
    
     run = 'BCQ'
-    fileLocation='/proj/vlasov/2D/'+run+'/bulk/'
+    fileLocation='/scratch/project_2000203/2D/'+run+'/'
 
     title = '(a) t = '+str(j/2.0)+' s, $\\Delta r = 300$ km'
 
@@ -47,7 +47,8 @@ for j in timetot:
 
 
     run = 'BFH'
-    fileLocation = ''
+    fileLocation = '/scratch/project_2000203/2D/'+run+'/reverted_ionosphere_field_boundary/'
+    bulknameBFH = 'bulk.0000800.vlsv'
 
     title = '(b) t = '+str(j/2.0)+' s, $\\Delta r = 600$ km' 
 
@@ -59,13 +60,24 @@ for j in timetot:
     ax_col2  = fig.add_axes([x2,y2,l2,h2])
 
     # Colormap of Temperature anisotropy for BFH
+    
+    pt.plot.plot_colormap(filename=fileLocation+bulknameBFH,var='vg_t_anisotropy',
+                          vmin=0.1,vmax=10.0,
+                          boxre=[0.0,17.0,-30.0,30.0],
+                          run="BFG",
+                          #title=title,
+                          colormap='seismic',
+                          scale=scale,
+                          axes=ax_col2,nocb=1,
+                          outputdir=outputLocation)
+
 
     title2 = ax_col2.set_title(title,fontsize=15)
     title2.set_position([0.5,1.09])
 
 
     run = 'BCG'
-    fileLocation='/proj/vlasov/2D/'+run+'/bulk/'
+    fileLocation='/scratch/project_2000203/2D/'+run+'/'
 
     title = '(c) t = '+str(j/2.0)+' s, $\\Delta r = 900$ km'
 
@@ -92,8 +104,8 @@ for j in timetot:
                           axes=ax_col3,
                           outputdir=outputLocation) 
 
-    title3 = ax_col3.set_title(title,fontsize=15)
-    title3.set_position([0.5,1.09])
+    title3 = ax_col3.set_title(title,fontsize=15,pad=30)
+    #title3.set_position([0.5,1.09])
 
     figname = 'Taniso_colormap'
     plt.savefig(outputLocation+figname+'.png',dpi=800)
