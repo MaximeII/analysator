@@ -32,12 +32,12 @@ for j in timetot:
     ax_col1 = fig.add_axes([x1,y1,l1,h1])
 
     # Colormap of Temperature anisotropy for BCQ
-    pt.plot.plot_colormap(filename=fileLocation+bulkname,var='TPerpOverPar',
-                          vmin=0.1,vmax=10.0,
+    pt.plot.plot_colormap(filename=fileLocation+bulkname,var='B',
+                          vmin=1.0e-8,vmax=3.0e-8,
                           boxre=[0.0,17.0,-30.0,30.0],
                           run="BCQ",
                           #title=title,
-                          colormap='seismic',
+                          colormap='hot_desaturated',lin=1,
                           scale=scale,
                           axes=ax_col1,nocb=1,
                           outputdir=outputLocation)
@@ -62,12 +62,12 @@ for j in timetot:
 
     # Colormap of Temperature anisotropy for BFH
     
-    pt.plot.plot_colormap(filename=fileLocation+bulknameBFH,var='vg_t_anisotropy',
-                          vmin=0.1,vmax=10.0,
+    pt.plot.plot_colormap(filename=fileLocation+bulknameBFH,var='fg_b',
+                          vmin=1.0e-8,vmax=3.0e-8,
                           boxre=[0.0,17.0,-30.0,30.0],
                           run="BFG",
                           #title=title,
-                          colormap='seismic',
+                          colormap='hot_desaturated',lin=1,
                           scale=scale,
                           axes=ax_col2,nocb=1,
                           outputdir=outputLocation)
@@ -95,12 +95,12 @@ for j in timetot:
     ax_col3  = fig.add_axes([x3,y3,l3,h3])
 
     # Colormap of Temperature anisotropy for BCG
-    pt.plot.plot_colormap(filename=fileLocation+bulkname,var='TPerpOverPar',
-                          vmin=0.1,vmax=10.0,
+    pt.plot.plot_colormap(filename=fileLocation+bulkname,var='B',
+                          vmin=1.0e-8,vmax=3.0e-8,
                           boxre=[0.0,17.0,-30.0,30.0],
                           run="BCG",
                           #title=title,
-                          colormap='seismic',
+                          colormap='hot_desaturated',lin=1,
                           scale=scale,
                           axes=ax_col3,
                           outputdir=outputLocation) 
@@ -108,6 +108,6 @@ for j in timetot:
     title3 = ax_col3.set_title(title,fontsize=15,pad=30)
     #title3.set_position([0.5,1.09])
 
-    figname = 'Taniso_colormap'
+    figname = 'B_colormap'
     plt.savefig(outputLocation+figname+'.png',dpi=800)
     print(outputLocation+figname+'.png')

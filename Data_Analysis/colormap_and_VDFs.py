@@ -70,7 +70,7 @@ for j in timetot:
     pt.plot.plot_colormap(filename=fileLocation+bulkname,var='fg_b',
                           vmin=1.0e-8,vmax=3.0e-8,
                           boxre=[0.0,9.0,12.0,21.0],
-                          run="BCQ",
+                          run="BFH",
                           colormap='hot_desaturated',
                           scale=1.3,
                           axes=ax_col,cbaxes=cax_col,

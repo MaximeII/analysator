@@ -4,7 +4,7 @@ path_bulk = '/scratch/project_2000203/2D/BFH/reverted_ionosphere_field_boundary/
 path_fig  = '/users/dubartma/analysator/Data_Analysis/test_plot2DFFT/'
 
 pt.plot.plt_2DFFT(filedir=path_bulk,
-                  start=200,stop=400,
+                  start=400,stop=1000,
                   outputdir=path_fig,
                   boxre=[3.0,6.0,15.0,18.0],
                   run='BFH',
