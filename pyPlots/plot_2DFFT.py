@@ -44,16 +44,16 @@ def get_angle(step):
         By = Bavg[2]
     
     if (Bx > 0.0) and (By < 0.0):
-        signe = 1.0  
+        signe = - 1.0  
         angle = signe * abs(np.arccos(np.dot(Bavg,ez)/Bnorm) * 180.0 / np.pi -180.0) # Degrees
     elif (Bx < 0.0) and (By < 0.0):
-        signe = - 1.0
+        signe = 1.0
         angle = signe * abs(np.arccos(np.dot(Bavg,ez)/Bnorm) * 180.0 / np.pi -180.0)
     elif (Bx < 0.0) and (By > 0.0):
-        signe = - 1.0
+        signe = 1.0
         angle = signe * abs(np.arccos(np.dot(Bavg,ez)/Bnorm) * 180.0 / np.pi)
     elif (Bx > 0.0) and (By > 0.0):
-        signe = 1.0
+        signe = - 1.0
         angle = signe * abs(np.arccos(np.dot(Bavg,ez)/Bnorm) * 180.0 / np.pi)
     else:
         print('ERROR: There was a problem with the magnetic field')
@@ -97,40 +97,81 @@ def get_fields(step):
     EzR = scipy.ndimage.rotate(Ez,angle_global,reshape=False)
     nR  = scipy.ndimage.rotate(n,angle_global,reshape=False)
 
-    # K_PERP
-        # Slice to 1D. Will take values over a line in the middle of the box.
-    Bx1D_kperp = BxR[int(BxR.shape[0]/2),:]
-    By1D_kperp = ByR[int(ByR.shape[0]/2),:]
-    Bz1D_kperp = BzR[int(BzR.shape[0]/2),:]
-    Ex1D_kperp = ExR[int(ExR.shape[0]/2),:]
-    Ey1D_kperp = EyR[int(EyR.shape[0]/2),:]
-    Ez1D_kperp = EzR[int(EzR.shape[0]/2),:]
-    n1D_kperp  = nR[int(nR.shape[0]/2),:]
-        # Hanning windowing to force the edge of box to be periodic. Comment if boundary conditions are periodic.
-    Bx1D_kperp *= np.hanning(len(Bx1D_kperp))
-    By1D_kperp *= np.hanning(len(By1D_kperp))
-    Bz1D_kperp *= np.hanning(len(Bz1D_kperp))
-    Ex1D_kperp *= np.hanning(len(Ex1D_kperp))
-    Ey1D_kperp *= np.hanning(len(Ey1D_kperp))
-    Ez1D_kperp *= np.hanning(len(Ez1D_kperp))
-    n1D_kperp  *= np.hanning(len(n1D_kperp))    
-    # K_PARA
-        # Slice to 1D. Will take values over a line in the middle of the box.
-    Bx1D_kpara = BxR[:,int(BxR.shape[1]/2)]
-    By1D_kpara = ByR[:,int(ByR.shape[1]/2)]
-    Bz1D_kpara = BzR[:,int(BzR.shape[1]/2)]
-    Ex1D_kpara = ExR[:,int(ExR.shape[1]/2)]
-    Ey1D_kpara = EyR[:,int(EyR.shape[1]/2)]
-    Ez1D_kpara = EzR[:,int(EzR.shape[1]/2)]
-    n1D_kpara  = nR[:,int(nR.shape[1]/2)]
-        # Hanning windowing to force the edge of box to be periodic. Comment if boundary conditions are periodic.
-    Bx1D_kpara *= np.hanning(len(Bx1D_kpara)) 
-    By1D_kpara *= np.hanning(len(By1D_kpara))
-    Bz1D_kpara *= np.hanning(len(Bz1D_kpara))
-    Ex1D_kpara *= np.hanning(len(Ex1D_kpara))
-    Ey1D_kpara *= np.hanning(len(Ey1D_kpara))
-    Ez1D_kpara *= np.hanning(len(Ez1D_kpara))
-    n1D_kpara  *= np.hanning(len(n1D_kpara))
+    if angle_global < 0.0:
+
+        # K_PARA
+            # Slice to 1D. Will take values over a line in the middle of the box.
+        Bx1D_kpara = BxR[int(BxR.shape[0]/2),:]
+        By1D_kpara = ByR[int(ByR.shape[0]/2),:]
+        Bz1D_kpara = BzR[int(BzR.shape[0]/2),:]
+        Ex1D_kpara = ExR[int(ExR.shape[0]/2),:]
+        Ey1D_kpara = EyR[int(EyR.shape[0]/2),:]
+        Ez1D_kpara = EzR[int(EzR.shape[0]/2),:]
+        n1D_kpara  = nR[int(nR.shape[0]/2),:]
+            # Hanning windowing to force the edge of box to be periodic. Comment if boundary conditions are periodic.
+        Bx1D_kpara *= np.hanning(len(Bx1D_kpara))
+        By1D_kpara *= np.hanning(len(By1D_kpara))
+        Bz1D_kpara *= np.hanning(len(Bz1D_kpara))
+        Ex1D_kpara *= np.hanning(len(Ex1D_kpara))
+        Ey1D_kpara *= np.hanning(len(Ey1D_kpara))
+        Ez1D_kpara *= np.hanning(len(Ez1D_kpara))
+        n1D_kpara  *= np.hanning(len(n1D_kpara))    
+        
+        # K_PERP
+            # Slice to 1D. Will take values over a line in the middle of the box.
+        Bx1D_kperp = BxR[:,int(BxR.shape[1]/2)]
+        By1D_kperp = ByR[:,int(ByR.shape[1]/2)]
+        Bz1D_kperp = BzR[:,int(BzR.shape[1]/2)]
+        Ex1D_kperp = ExR[:,int(ExR.shape[1]/2)]
+        Ey1D_kperp = EyR[:,int(EyR.shape[1]/2)]
+        Ez1D_kperp = EzR[:,int(EzR.shape[1]/2)]
+        n1D_kperp  = nR[:,int(nR.shape[1]/2)]
+            # Hanning windowing to force the edge of box to be periodic. Comment if boundary conditions are periodic.
+        Bx1D_kperp *= np.hanning(len(Bx1D_kperp)) 
+        By1D_kperp *= np.hanning(len(By1D_kperp))
+        Bz1D_kperp *= np.hanning(len(Bz1D_kperp))
+        Ex1D_kperp *= np.hanning(len(Ex1D_kperp))
+        Ey1D_kperp *= np.hanning(len(Ey1D_kperp))
+        Ez1D_kperp *= np.hanning(len(Ez1D_kperp))
+        n1D_kperp  *= np.hanning(len(n1D_kperp))
+
+    else: 
+
+         # K_PERP
+            # Slice to 1D. Will take values over a line in the middle of the box.
+        Bx1D_kperp = BxR[int(BxR.shape[0]/2),:]
+        By1D_kperp = ByR[int(ByR.shape[0]/2),:]
+        Bz1D_kperp = BzR[int(BzR.shape[0]/2),:]
+        Ex1D_kperp = ExR[int(ExR.shape[0]/2),:]
+        Ey1D_kperp = EyR[int(EyR.shape[0]/2),:]
+        Ez1D_kperp = EzR[int(EzR.shape[0]/2),:]
+        n1D_kperp  = nR[int(nR.shape[0]/2),:]
+            # Hanning windowing to force the edge of box to be periodic. Comment if boundary conditions are periodic.
+        Bx1D_kperp *= np.hanning(len(Bx1D_kperp))
+        By1D_kperp *= np.hanning(len(By1D_kperp))
+        Bz1D_kperp *= np.hanning(len(Bz1D_kperp))
+        Ex1D_kperp *= np.hanning(len(Ex1D_kperp))
+        Ey1D_kperp *= np.hanning(len(Ey1D_kperp))
+        Ez1D_kperp *= np.hanning(len(Ez1D_kperp))
+        n1D_kperp  *= np.hanning(len(n1D_kperp))
+        # K_PARA
+            # Slice to 1D. Will take values over a line in the middle of the box.
+        Bx1D_kpara = BxR[:,int(BxR.shape[1]/2)]
+        By1D_kpara = ByR[:,int(ByR.shape[1]/2)]
+        Bz1D_kpara = BzR[:,int(BzR.shape[1]/2)]
+        Ex1D_kpara = ExR[:,int(ExR.shape[1]/2)]
+        Ey1D_kpara = EyR[:,int(EyR.shape[1]/2)]
+        Ez1D_kpara = EzR[:,int(EzR.shape[1]/2)]
+        n1D_kpara  = nR[:,int(nR.shape[1]/2)]
+            # Hanning windowing to force the edge of box to be periodic. Comment if boundary conditions are periodic.
+        Bx1D_kpara *= np.hanning(len(Bx1D_kpara))
+        By1D_kpara *= np.hanning(len(By1D_kpara))
+        Bz1D_kpara *= np.hanning(len(Bz1D_kpara))
+        Ex1D_kpara *= np.hanning(len(Ex1D_kpara))
+        Ey1D_kpara *= np.hanning(len(Ey1D_kpara))
+        Ez1D_kpara *= np.hanning(len(Ez1D_kpara))
+        n1D_kpara  *= np.hanning(len(n1D_kpara))
+
 
     out = [Bx1D_kperp,By1D_kperp,Bz1D_kperp,Ex1D_kperp,Ey1D_kperp,Ez1D_kperp,n1D_kperp,Bx1D_kpara,By1D_kpara,Bz1D_kpara,Ex1D_kpara,Ey1D_kpara,Ez1D_kpara,n1D_kpara]
 
@@ -384,20 +425,20 @@ def plt_2DFFT(filedir=None,
     print('-----------------------------')
     
     # 2D FFT
-    k_omega_Bx_kpara = np.fft.fftshift(np.fft.fft2(B_kpara[:,0].T)) #Shift to be centered around 0. Transposed to have complex part.
-    k_omega_By_kpara = np.fft.fftshift(np.fft.fft2(B_kpara[:,1].T))
-    k_omega_Bz_kpara = np.fft.fftshift(np.fft.fft2(B_kpara[:,2].T))
-    k_omega_Ex_kpara = np.fft.fftshift(np.fft.fft2(E_kpara[:,0].T))
-    k_omega_Ey_kpara = np.fft.fftshift(np.fft.fft2(E_kpara[:,1].T))
-    k_omega_Ez_kpara = np.fft.fftshift(np.fft.fft2(E_kpara[:,2].T))
-    k_omega_n_kpara  = np.fft.fftshift(np.fft.fft2(n_kpara.T))
-    k_omega_Bx_kperp = np.fft.fftshift(np.fft.fft2(B_kperp[:,0].T))
-    k_omega_By_kperp = np.fft.fftshift(np.fft.fft2(B_kperp[:,1].T))
-    k_omega_Bz_kperp = np.fft.fftshift(np.fft.fft2(B_kperp[:,2].T))
-    k_omega_Ex_kperp = np.fft.fftshift(np.fft.fft2(E_kperp[:,0].T))
-    k_omega_Ey_kperp = np.fft.fftshift(np.fft.fft2(E_kperp[:,1].T))
-    k_omega_Ez_kperp = np.fft.fftshift(np.fft.fft2(E_kperp[:,2].T))
-    k_omega_n_kperp  = np.fft.fftshift(np.fft.fft2(n_kperp.T))
+    k_omega_Bx_kpara = np.fft.fftshift(np.fft.fft2(B_kpara[:,0])) #Shift to be centered around 0. Transposed to have complex part.
+    k_omega_By_kpara = np.fft.fftshift(np.fft.fft2(B_kpara[:,1]))
+    k_omega_Bz_kpara = np.fft.fftshift(np.fft.fft2(B_kpara[:,2]))
+    k_omega_Ex_kpara = np.fft.fftshift(np.fft.fft2(E_kpara[:,0]))
+    k_omega_Ey_kpara = np.fft.fftshift(np.fft.fft2(E_kpara[:,1]))
+    k_omega_Ez_kpara = np.fft.fftshift(np.fft.fft2(E_kpara[:,2]))
+    k_omega_n_kpara  = np.fft.fftshift(np.fft.fft2(n_kpara))
+    k_omega_Bx_kperp = np.fft.fftshift(np.fft.fft2(B_kperp[:,0]))
+    k_omega_By_kperp = np.fft.fftshift(np.fft.fft2(B_kperp[:,1]))
+    k_omega_Bz_kperp = np.fft.fftshift(np.fft.fft2(B_kperp[:,2]))
+    k_omega_Ex_kperp = np.fft.fftshift(np.fft.fft2(E_kperp[:,0]))
+    k_omega_Ey_kperp = np.fft.fftshift(np.fft.fft2(E_kperp[:,1]))
+    k_omega_Ez_kperp = np.fft.fftshift(np.fft.fft2(E_kperp[:,2]))
+    k_omega_n_kperp  = np.fft.fftshift(np.fft.fft2(n_kperp))
 
 
     # Compute quantities based on the middle bulk file of list
@@ -414,36 +455,43 @@ def plt_2DFFT(filedir=None,
        omegamax = np.pi / dt / w_ci
     
     if dr_ref != None:
-        kmin_plot = - np.pi / dr_ref * d_i  
-        kmax_plot = np.pi / dr_ref * d_i
+        kmin_plot = - np.pi / float(dr_ref) * d_i  
+        kmax_plot = np.pi / float(dr_ref) * d_i
     else:
         kmin_plot = kmin
         kmax_plot = kmax
+
+    print(kmin_plot,kmax_plot)
+
+    if angle_global < 0.0:
+        signe = - 1.0
+    else:
+        signe = 1.0
 
     #Dispersion relations
     def CFL(k): #CFL condition
         return dx/0.044304 * (k / d_i)   #Constante may change with simulation
     
     def AWaves_para(k): #Alfven waves
-        return abs(Bnorm / np.sqrt(mu0 * rho * mp) * (abs(k)/d_i) + vpara*(k/d_i)) # - flow speed
+        return abs(Bnorm / np.sqrt(mu0 * rho * mp) * (abs(signe * k)/d_i) + vpara*(signe * k/d_i)) # - flow speed
     
     def AWaves_perp(k): #Alfven waves
-        return abs( Bnorm / np.sqrt(mu0 * rho * mp) * (abs(k)/d_i) - vperp*(k/d_i))
+        return abs( Bnorm / np.sqrt(mu0 * rho * mp) * (abs(signe * k)/d_i) - vperp*(signe * k/d_i))
     
     def FMW_kpara(k): #Fast Magnetosonic Waves
-        return abs(np.sqrt( 1.0/2.0 *( vS**2 + vA**2 + np.sqrt( (vS**2 + vA**2)**2 - 4* vA**2 * vS**2 ))) * (abs(k)/d_i) + vpara*(k/d_i))
+        return abs(np.sqrt( 1.0/2.0 *( vS**2 + vA**2 + np.sqrt( (vS**2 + vA**2)**2 - 4* vA**2 * vS**2 ))) * (abs(signe* k)/d_i) + vpara*(signe * k/d_i))
     
     def SMW_kpara(k): #Slow Magnetosonic Waves
-        return abs(np.sqrt( 1.0/2.0 *( vS**2 + vA**2 - np.sqrt( (vS**2 + vA**2)**2 - 4* vA**2 * vS**2 ))) * (abs(k)/d_i) + vpara*(k/d_i))
+        return abs(np.sqrt( 1.0/2.0 *( vS**2 + vA**2 - np.sqrt( (vS**2 + vA**2)**2 - 4* vA**2 * vS**2 ))) * (abs(signe * k)/d_i) + vpara*(signe * k/d_i))
     
     def Bulk_v_para(k): #Bulk Velocity
-        return  abs(vpara*(k/d_i))
+        return  abs(vpara*(signe * k/d_i))
     
     def FMW_kperp(k): #Fast Magnetosonic Waves
-        return  abs(np.sqrt( 1.0/2.0 *( vS**2 + vA**2 + np.sqrt( (vS**2 + vA**2)**2))) * (abs(k)/d_i) - vperp*(k/d_i))
+        return  abs(np.sqrt( 1.0/2.0 *( vS**2 + vA**2 + np.sqrt( (vS**2 + vA**2)**2))) * (abs(signe * k)/d_i) - vperp*(signe * k/d_i))
     
     def SMW_kperp(k): #Slow Magnetosonic Waves
-        return  abs(np.sqrt( 1.0/2.0 *( vS**2 + vA**2 - np.sqrt( (vS**2 + vA**2)**2))) * (abs(k)/d_i) - vperp*(k/d_i))
+        return  abs(np.sqrt( 1.0/2.0 *( vS**2 + vA**2 - np.sqrt( (vS**2 + vA**2)**2))) * (abs(signe * k)/d_i) - vperp*(signe * k/d_i))
     
     def Bulk_v_perp(k): #Bulk Velocity
         return  abs(vperp*(k/d_i))
@@ -462,6 +510,8 @@ def plt_2DFFT(filedir=None,
     print('-----------------------------')
     print('Plotting ...')
     print('-----------------------------')
+
+    linewidth = 1
 
     if paper == None:
         title_save = '2D_FFT'
@@ -488,13 +538,13 @@ def plt_2DFFT(filedir=None,
         
         for i in range(0,len(dispersion)):
             if dispersion[i] == 'Alfven':
-                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+                plt.plot(a,awaves_para,linewidth=linewidth,color='blue',label='Alfven Waves')
             elif dispersion[i] == 'FMW':    
-                plt.plot(a,fmw_kpara,linewidth=3,color='red',linestyle='--',label='Fast MW')
+                plt.plot(a,fmw_kpara,linewidth=linewidth,color='red',linestyle='--',label='Fast MW')
             elif dispersion[i] == 'SMW':    
-                plt.plot(a,smw_kpara,linewidth=3,color='red',linestyle=':',label='Slow MW')
+                plt.plot(a,smw_kpara,linewidth=linewidth,color='red',linestyle=':',label='Slow MW')
             elif dispersion[i] == 'bulkV':    
-                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+                plt.plot(a,bv_para,linewidth=linewidth,color='black',linestyle='--',label='V')
         
         plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
     
@@ -526,17 +576,17 @@ def plt_2DFFT(filedir=None,
         plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
         plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
     
-        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+        plt.plot(a, cfl, linewidth=linewidth, color='black',label='CFL condition')
     
         for i in range(0,len(dispersion)):
             if dispersion[i] == 'Alfven':
-                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+                plt.plot(a,awaves_para,linewidth=linewidth,color='blue',label='Alfven Waves')
             elif dispersion[i] == 'FMW':
-                plt.plot(a,fmw_kpara,linewidth=3,color='red',linestyle='--',label='Fast MW')
+                plt.plot(a,fmw_kpara,linewidth=linewidth,color='red',linestyle='--',label='Fast MW')
             elif dispersion[i] == 'SMW':
-                plt.plot(a,smw_kpara,linewidth=3,color='red',linestyle=':',label='Slow MW')
+                plt.plot(a,smw_kpara,linewidth=linewidth,color='red',linestyle=':',label='Slow MW')
             elif dispersion[i] == 'bulkV':
-                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+                plt.plot(a,bv_para,linewidth=linewidth,color='black',linestyle='--',label='V')
     
         plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
     
@@ -568,17 +618,17 @@ def plt_2DFFT(filedir=None,
         plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
         plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
     
-        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+        plt.plot(a, cfl, linewidth=linewidth, color='black',label='CFL condition')
     
         for i in range(0,len(dispersion)):
             if dispersion[i] == 'Alfven':
-                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+                plt.plot(a,awaves_para,linewidth=linewidth,color='blue',label='Alfven Waves')
             elif dispersion[i] == 'FMW':
-                plt.plot(a,fmw_kpara,linewidth=3,color='red',linestyle='--',label='Fast MW')
+                plt.plot(a,fmw_kpara,linewidth=linewidth,color='red',linestyle='--',label='Fast MW')
             elif dispersion[i] == 'SMW':
-                plt.plot(a,smw_kpara,linewidth=3,color='red',linestyle=':',label='Slow MW')
+                plt.plot(a,smw_kpara,linewidth=linewidth,color='red',linestyle=':',label='Slow MW')
             elif dispersion[i] == 'bulkV':
-                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+                plt.plot(a,bv_para,linewidth=linewidth,color='black',linestyle='--',label='V')
     
         plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
     
@@ -610,17 +660,17 @@ def plt_2DFFT(filedir=None,
         plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
         plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
     
-        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+        plt.plot(a, cfl, linewidth=linewidth, color='black',label='CFL condition')
     
         for i in range(0,len(dispersion)):
             if dispersion[i] == 'Alfven':
-                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+                plt.plot(a,awaves_para,linewidth=linewidth,color='blue',label='Alfven Waves')
             elif dispersion[i] == 'FMW':
-                plt.plot(a,fmw_kpara,linewidth=3,color='red',linestyle='--',label='Fast MW')
+                plt.plot(a,fmw_kpara,linewidth=linewidth,color='red',linestyle='--',label='Fast MW')
             elif dispersion[i] == 'SMW':
-                plt.plot(a,smw_kpara,linewidth=3,color='red',linestyle=':',label='Slow MW')
+                plt.plot(a,smw_kpara,linewidth=linewidth,color='red',linestyle=':',label='Slow MW')
             elif dispersion[i] == 'bulkV':
-                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+                plt.plot(a,bv_para,linewidth=linewidth,color='black',linestyle='--',label='V')
     
         plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
     
@@ -652,17 +702,17 @@ def plt_2DFFT(filedir=None,
         plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
         plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
     
-        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+        plt.plot(a, cfl, linewidth=linewidth, color='black',label='CFL condition')
     
         for i in range(0,len(dispersion)):
             if dispersion[i] == 'Alfven':
-                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+                plt.plot(a,awaves_para,linewidth=linewidth,color='blue',label='Alfven Waves')
             elif dispersion[i] == 'FMW':
-                plt.plot(a,fmw_kpara,linewidth=3,color='red',linestyle='--',label='Fast MW')
+                plt.plot(a,fmw_kpara,linewidth=linewidth,color='red',linestyle='--',label='Fast MW')
             elif dispersion[i] == 'SMW':
-                plt.plot(a,smw_kpara,linewidth=3,color='red',linestyle=':',label='Slow MW')
+                plt.plot(a,smw_kpara,linewidth=linewidth,color='red',linestyle=':',label='Slow MW')
             elif dispersion[i] == 'bulkV':
-                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+                plt.plot(a,bv_para,linewidth=linewidth,color='black',linestyle='--',label='V')
     
         plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
     
@@ -694,17 +744,17 @@ def plt_2DFFT(filedir=None,
         plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
         plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
     
-        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+        plt.plot(a, cfl, linewidth=linewidth, color='black',label='CFL condition')
     
         for i in range(0,len(dispersion)):
             if dispersion[i] == 'Alfven':
-                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+                plt.plot(a,awaves_para,linewidth=linewidth,color='blue',label='Alfven Waves')
             elif dispersion[i] == 'FMW':
-                plt.plot(a,fmw_kpara,linewidth=3,color='red',linestyle='--',label='Fast MW')
+                plt.plot(a,fmw_kpara,linewidth=linewidth,color='red',linestyle='--',label='Fast MW')
             elif dispersion[i] == 'SMW':
-                plt.plot(a,smw_kpara,linewidth=3,color='red',linestyle=':',label='Slow MW')
+                plt.plot(a,smw_kpara,linewidth=linewidth,color='red',linestyle=':',label='Slow MW')
             elif dispersion[i] == 'bulkV':
-                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+                plt.plot(a,bv_para,linewidth=linewidth,color='black',linestyle='--',label='V')
     
         plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
     
@@ -736,17 +786,17 @@ def plt_2DFFT(filedir=None,
         plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
         plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
     
-        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+        plt.plot(a, cfl, linewidth=linewidth, color='black',label='CFL condition')
     
         for i in range(0,len(dispersion)):
             if dispersion[i] == 'Alfven':
-                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+                plt.plot(a,awaves_para,linewidth=linewidth,color='blue',label='Alfven Waves')
             elif dispersion[i] == 'FMW':
-                plt.plot(a,fmw_kpara,linewidth=3,color='red',linestyle='--',label='Fast MW')
+                plt.plot(a,fmw_kpara,linewidth=linewidth,color='red',linestyle='--',label='Fast MW')
             elif dispersion[i] == 'SMW':
-                plt.plot(a,smw_kpara,linewidth=3,color='red',linestyle=':',label='Slow MW')
+                plt.plot(a,smw_kpara,linewidth=linewidth,color='red',linestyle=':',label='Slow MW')
             elif dispersion[i] == 'bulkV':
-                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+                plt.plot(a,bv_para,linewidth=linewidth,color='black',linestyle='--',label='V')
     
         plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
     
@@ -781,17 +831,17 @@ def plt_2DFFT(filedir=None,
         plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
         plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
         
-        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+        plt.plot(a, cfl, linewidth=linewidth, color='black',label='CFL condition')
         
         for i in range(0,len(dispersion)):
             if dispersion[i] == 'Alfven':
-                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+                plt.plot(a,awaves_para,linewidth=linewidth,color='blue',label='Alfven Waves')
             elif dispersion[i] == 'FMW':    
-                plt.plot(a,fmw_kperp,linewidth=3,color='red',linestyle='--',label='Fast MW')
+                plt.plot(a,fmw_kperp,linewidth=linewidth,color='red',linestyle='--',label='Fast MW')
             elif dispersion[i] == 'SMW':    
-                plt.plot(a,smw_kperp,linewidth=3,color='red',linestyle=':',label='Slow MW')
+                plt.plot(a,smw_kperp,linewidth=linewidth,color='red',linestyle=':',label='Slow MW')
             elif dispersion[i] == 'bulkV':    
-                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+                plt.plot(a,bv_para,linewidth=linewidth,color='black',linestyle='--',label='V')
         
         plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
     
@@ -823,17 +873,17 @@ def plt_2DFFT(filedir=None,
         plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
         plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
     
-        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+        plt.plot(a, cfl, linewidth=linewidth, color='black',label='CFL condition')
     
         for i in range(0,len(dispersion)):
             if dispersion[i] == 'Alfven':
-                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+                plt.plot(a,awaves_para,linewidth=linewidth,color='blue',label='Alfven Waves')
             elif dispersion[i] == 'FMW':
-                plt.plot(a,fmw_kperp,linewidth=3,color='red',linestyle='--',label='Fast MW')
+                plt.plot(a,fmw_kperp,linewidth=linewidth,color='red',linestyle='--',label='Fast MW')
             elif dispersion[i] == 'SMW':
-                plt.plot(a,smw_kperp,linewidth=3,color='red',linestyle=':',label='Slow MW')
+                plt.plot(a,smw_kperp,linewidth=linewidth,color='red',linestyle=':',label='Slow MW')
             elif dispersion[i] == 'bulkV':
-                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+                plt.plot(a,bv_para,linewidth=linewidth,color='black',linestyle='--',label='V')
     
         plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
     
@@ -865,17 +915,17 @@ def plt_2DFFT(filedir=None,
         plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
         plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
     
-        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+        plt.plot(a, cfl, linewidth=linewidth, color='black',label='CFL condition')
     
         for i in range(0,len(dispersion)):
             if dispersion[i] == 'Alfven':
-                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+                plt.plot(a,awaves_para,linewidth=linewidth,color='blue',label='Alfven Waves')
             elif dispersion[i] == 'FMW':
-                plt.plot(a,fmw_kperp,linewidth=3,color='red',linestyle='--',label='Fast MW')
+                plt.plot(a,fmw_kperp,linewidth=linewidth,color='red',linestyle='--',label='Fast MW')
             elif dispersion[i] == 'SMW':
-                plt.plot(a,smw_kperp,linewidth=3,color='red',linestyle=':',label='Slow MW')
+                plt.plot(a,smw_kperp,linewidth=linewidth,color='red',linestyle=':',label='Slow MW')
             elif dispersion[i] == 'bulkV':
-                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+                plt.plot(a,bv_para,linewidth=linewidth,color='black',linestyle='--',label='V')
     
         plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
     
@@ -907,17 +957,17 @@ def plt_2DFFT(filedir=None,
         plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
         plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
     
-        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+        plt.plot(a, cfl, linewidth=linewidth, color='black',label='CFL condition')
     
         for i in range(0,len(dispersion)):
             if dispersion[i] == 'Alfven':
-                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+                plt.plot(a,awaves_para,linewidth=linewidth,color='blue',label='Alfven Waves')
             elif dispersion[i] == 'FMW':
-                plt.plot(a,fmw_kperp,linewidth=3,color='red',linestyle='--',label='Fast MW')
+                plt.plot(a,fmw_kperp,linewidth=linewidth,color='red',linestyle='--',label='Fast MW')
             elif dispersion[i] == 'SMW':
-                plt.plot(a,smw_kperp,linewidth=3,color='red',linestyle=':',label='Slow MW')
+                plt.plot(a,smw_kperp,linewidth=linewidth,color='red',linestyle=':',label='Slow MW')
             elif dispersion[i] == 'bulkV':
-                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+                plt.plot(a,bv_para,linewidth=linewidth,color='black',linestyle='--',label='V')
     
         plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
     
@@ -949,17 +999,17 @@ def plt_2DFFT(filedir=None,
         plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
         plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
     
-        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+        plt.plot(a, cfl, linewidth=linewidth, color='black',label='CFL condition')
     
         for i in range(0,len(dispersion)):
             if dispersion[i] == 'Alfven':
-                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+                plt.plot(a,awaves_para,linewidth=linewidth,color='blue',label='Alfven Waves')
             elif dispersion[i] == 'FMW':
-                plt.plot(a,fmw_kperp,linewidth=3,color='red',linestyle='--',label='Fast MW')
+                plt.plot(a,fmw_kperp,linewidth=linewidth,color='red',linestyle='--',label='Fast MW')
             elif dispersion[i] == 'SMW':
-                plt.plot(a,smw_kperp,linewidth=3,color='red',linestyle=':',label='Slow MW')
+                plt.plot(a,smw_kperp,linewidth=linewidth,color='red',linestyle=':',label='Slow MW')
             elif dispersion[i] == 'bulkV':
-                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+                plt.plot(a,bv_para,linewidth=linewidth,color='black',linestyle='--',label='V')
     
         plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
     
@@ -991,17 +1041,17 @@ def plt_2DFFT(filedir=None,
         plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
         plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
     
-        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+        plt.plot(a, cfl, linewidth=linewidth, color='black',label='CFL condition')
     
         for i in range(0,len(dispersion)):
             if dispersion[i] == 'Alfven':
-                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+                plt.plot(a,awaves_para,linewidth=linewidth,color='blue',label='Alfven Waves')
             elif dispersion[i] == 'FMW':
-                plt.plot(a,fmw_kperp,linewidth=3,color='red',linestyle='--',label='Fast MW')
+                plt.plot(a,fmw_kperp,linewidth=linewidth,color='red',linestyle='--',label='Fast MW')
             elif dispersion[i] == 'SMW':
-                plt.plot(a,smw_kperp,linewidth=3,color='red',linestyle=':',label='Slow MW')
+                plt.plot(a,smw_kperp,linewidth=linewidth,color='red',linestyle=':',label='Slow MW')
             elif dispersion[i] == 'bulkV':
-                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+                plt.plot(a,bv_para,linewidth=linewidth,color='black',linestyle='--',label='V')
     
         plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
     
@@ -1016,7 +1066,7 @@ def plt_2DFFT(filedir=None,
         print ('Figure saved at: '+outputdir+run+'_'+variable+'_'+title_save+'_kperp.png')
     
         # n
-        plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=300) #Set figure size
+        plt.figure(figsize=[4.0*3.5,3.15*3.5],dpi=400) #Set figure size
         ax    = plt.subplot()
     
         if nmin != None:
@@ -1033,17 +1083,17 @@ def plt_2DFFT(filedir=None,
         plt.xlabel("$k_\\parallel * d_i$",fontsize='35')
         plt.ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize='35')
     
-        plt.plot(a, cfl, linewidth=3, color='black',label='CFL condition')
+        plt.plot(a, cfl, linewidth=linewidth, color='black',label='CFL condition')
     
         for i in range(0,len(dispersion)):
             if dispersion[i] == 'Alfven':
-                plt.plot(a,awaves_para,linewidth=3,color='blue',label='Alfven Waves')
+                plt.plot(a,awaves_para,linewidth=linewidth,color='blue',label='Alfven Waves')
             elif dispersion[i] == 'FMW':
-                plt.plot(a,fmw_kperp,linewidth=3,color='red',linestyle='--',label='Fast MW')
+                plt.plot(a,fmw_kperp,linewidth=linewidth,color='red',linestyle='--',label='Fast MW')
             elif dispersion[i] == 'SMW':
-                plt.plot(a,smw_kperp,linewidth=3,color='red',linestyle=':',label='Slow MW')
+                plt.plot(a,smw_kperp,linewidth=linewidth,color='red',linestyle=':',label='Slow MW')
             elif dispersion[i] == 'bulkV':
-                plt.plot(a,bv_para,linewidth=3,color='black',linestyle='--',label='V')
+                plt.plot(a,bv_para,linewidth=linewidth,color='black',linestyle='--',label='V')
     
         plt.legend(bbox_to_anchor=(-0.1,1.02,1.4,0.12),loc='upper right',fontsize='15',ncol=len(dispersion)+1,mode='expand') #Legend
     
@@ -1075,15 +1125,15 @@ def plt_2DFFT(filedir=None,
         ax_para.set_xlabel("$k_\\parallel * d_i$",fontsize=fontsize)
         ax_para.set_ylabel("$\\frac{\\omega}{\\Omega_c}$",fontsize=fontsize)
         
-        ax_para.plot(a, cfl, linewidth=2, color='black',label='CFL condition')
-        ax_para.plot(a,awaves_para,linewidth=2,color='blue',label='Alfven Waves')
-        ax_para.plot(a,fmw_kpara,linewidth=2,color='red',linestyle='--',label='Fast MW')
-        ax_para.plot(a,smw_kpara,linewidth=2,color='red',linestyle=':',label='Slow MW')
-        ax_para.plot(a,bv_para,linewidth=2,color='black',linestyle='--',label='V')
+        ax_para.plot(a, cfl, linewidth=linewidth, color='black',label='CFL condition')
+        ax_para.plot(a,awaves_para,linewidth=linewidth,color='blue',label='Alfven Waves')
+        ax_para.plot(a,fmw_kpara,linewidth=linewidth,color='red',linestyle='--',label='Fast MW')
+        ax_para.plot(a,smw_kpara,linewidth=linewidth,color='red',linestyle=':',label='Slow MW')
+        ax_para.plot(a,bv_para,linewidth=linewidth,color='black',linestyle='--',label='V')
         
         ax_para.text(kmax_plot - 0.3,2.7,'(c)',fontsize=12)
         
-        ax_para.legend(bbox_to_anchor = [-0.03, 1.04, 2.105, 0.05], loc='upper right',ncol=5, mode='expand', fontsize=8.5)
+        #ax_para.legend(bbox_to_anchor = [-0.03, 1.04, 2.105, 0.05], loc='upper right',ncol=5, mode='expand', fontsize=8.5)
         
         #K_PERP
         image = ax_perp.imshow(abs(k_omega_Ey_kperp[int((k_omega_Ey_kperp.shape[0])/2):,:]),vmin=Emin,vmax=Emax, norm=colors.LogNorm(), extent=[kmin, kmax, omegamax, omegamin], aspect='auto',cmap = plt.get_cmap(cmap))
@@ -1096,11 +1146,11 @@ def plt_2DFFT(filedir=None,
         ax_perp.set_ylim(omegamin, omegamax)
         ax_perp.set_xlabel("$k_\\bot * d_i$",fontsize=fontsize-1)
         
-        ax_perp.plot(a, cfl, linewidth=2, color='black',label='CFL condition')
-        ax_perp.plot(a,awaves_perp,linewidth=2,color='blue',label='Alfven Speed')
-        ax_perp.plot(a,fmw_kperp,linewidth=2,color='red',linestyle='--',label='Fast MW')
-        ax_perp.plot(a,smw_kperp,linewidth=2,color='red',linestyle=':',label='Slow MW')
-        ax_perp.plot(a,bv_perp,linewidth=2,color='black',linestyle='--',label='V')
+        ax_perp.plot(a, cfl, linewidth=linewidth, color='black',label='CFL condition')
+        ax_perp.plot(a,awaves_perp,linewidth=linewidth,color='blue',label='Alfven Speed')
+        ax_perp.plot(a,fmw_kperp,linewidth=linewidth,color='red',linestyle='--',label='Fast MW')
+        ax_perp.plot(a,smw_kperp,linewidth=linewidth,color='red',linestyle=':',label='Slow MW')
+        ax_perp.plot(a,bv_perp,linewidth=linewidth,color='black',linestyle='--',label='V')
         
         ax_perp.text(kmax_plot - 0.3,2.7,'(d)',fontsize=12)
         
@@ -1118,7 +1168,7 @@ def plt_2DFFT(filedir=None,
         
         title = 'FFT_'+run
         #plt.savefig(path_fig+title+'.eps',dpi=400)
-        plt.savefig(outputdir+title+'.pdf',dpi=400)
+        plt.savefig(outputdir+title+'.pdf',dpi=800)
         print(outputdir+title+'.pdf')
 
     else:

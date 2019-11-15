@@ -48,10 +48,8 @@ for j in timetot:
 
     run = 'BFH'
     fileLocation = '/scratch/project_2000203/2D/'+run+'/reverted_ionosphere_field_boundary/'
-    bulk = 1000
-    bulknameBFH = 'bulk.0001000.vlsv'
 
-    title = '(b) t = '+str(bulk/2.0)+' s, $\\Delta r = 600$ km' 
+    title = '(b) t = '+str(j/2.0)+' s, $\\Delta r = 600$ km' 
 
     x2 = 2.0*hspace + 1.0*l1
     y2 = y1
@@ -62,7 +60,7 @@ for j in timetot:
 
     # Colormap of Temperature anisotropy for BFH
     
-    pt.plot.plot_colormap(filename=fileLocation+bulknameBFH,var='vg_t_anisotropy',
+    pt.plot.plot_colormap(filename=fileLocation+bulkname,var='vg_t_anisotropy',
                           vmin=0.1,vmax=10.0,
                           boxre=[0.0,17.0,-30.0,30.0],
                           run="BFG",

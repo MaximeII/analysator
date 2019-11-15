@@ -6,8 +6,8 @@ import scipy.io
 path_bulk = '/scratch/project_2000203/2D/BFH/reverted_ionosphere_field_boundary/'
 path_save = '/users/dubartma/analysator/Data_Analysis/BFH/Data/'
 
-bulkStart = 400
-bulkEnd   = 1000
+bulkStart = 1398
+bulkEnd   = 2198
 numproc   = 40
 
 CellID = np.load(path_save+'CellID_SC.npy')

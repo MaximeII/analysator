@@ -1,10 +1,10 @@
 import pytools as pt
 
 path_bulk = '/scratch/project_2000203/2D/BFH/reverted_ionosphere_field_boundary/'
-path_fig  = '/users/dubartma/analysator/Data_Analysis/test_plot2DFFT/'
+path_fig  = '/users/dubartma/analysator/Data_Analysis/BFH/Fig/'
 
 pt.plot.plt_2DFFT(filedir=path_bulk,
-                  start=400,stop=1000,
+                  start=1300,stop=2100,
                   outputdir=path_fig,
                   boxre=[3.0,6.0,15.0,18.0],
                   run='BFH',
